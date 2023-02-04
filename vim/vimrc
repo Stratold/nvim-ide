@@ -1,0 +1,261 @@
+set nocompatible
+set encoding=utf-8
+set fileformats=unix,dos,mac
+
+let g:polyglot_disabled = ['typescript']
+let g:indentLine_concealcursor = 'cv'
+
+call plug#begin('~/.vim/plugged')
+Plug 'sheerun/vim-polyglot', { 'commit': 'bc8a81d' }
+Plug 'neovim/nvim-lspconfig', { 'commit': '902d6aa' }
+Plug 'Shougo/ddc.vim', { 'commit': '4c72b37' }
+Plug 'Shougo/pum.vim', { 'commit': 'af3fb1a' }
+Plug 'vim-denops/denops.vim', { 'commit': '8f3899d' }
+Plug 'Shougo/ddc-matcher_head', { 'commit': '470cd38' }
+Plug 'holliy/ddc-sorter_ascii', { 'commit': 'e5a58d1' }
+Plug 'tani/ddc-fuzzy', { 'commit': '146efed' }
+Plug 'matsui54/denops-popup-preview.vim', { 'commit': '34f45e7' }
+Plug 'ray-x/lsp_signature.nvim', { 'commit': '6f6252f' }
+Plug 'Shougo/ddc-converter_remove_overlap', { 'commit': '5af0aa4' }
+Plug 'Shougo/ddc-around', { 'commit': 'e9ea004' }
+Plug 'Shougo/neco-vim', { 'commit': '6c58180' }
+Plug 'Shougo/ddc-nvim-lsp', { 'commit': '1795bfd' }
+Plug 'LumaKernel/ddc-file', { 'commit': 'f10a559' }
+Plug 'ippachi/ddc-yank', { 'commit': '35e9f13' }
+Plug 'Shougo/ddc-ui-pum', { 'commit': 'c3af7d4' }
+Plug 'junegunn/fzf', { 'commit': 'f7447ae', 'dir': '~/.fzf', 'do': './install --all' }
+Plug 'junegunn/fzf.vim', { 'commit': 'dc71692' }
+Plug 'Yggdroot/indentLine', { 'commit': 'd15d63b' }
+Plug 'tpope/vim-fugitive', { 'commit': '2febbe1' }
+Plug 'kablamo/vim-git-log', { 'commit': 'd79123c' }
+Plug 'vim-airline/vim-airline', { 'commit': '038e3a6' }
+Plug 'vim-airline/vim-airline-themes', { 'commit': 'dd81554' }
+Plug 'tpope/vim-surround', { 'commit': '3d188ed' }
+Plug 'godlygeek/tabular', { 'commit': '339091a' }
+call plug#end()
+
+set backspace=indent,eol,start
+
+set hidden
+set history=200
+set ruler
+set showcmd
+set incsearch
+
+set backup
+set backupdir=~/.local/vim/backup/
+set undofile
+set undodir=~/.local/vim/undo/
+set undolevels=200
+
+map Q gq
+inoremap <C-U> <C-G>u<C-U>
+
+if has('mouse')
+  set mouse=a
+endif
+
+if &t_Co > 2 || has("gui_running")
+  let python_highlight_all=1
+  syntax on
+  set redrawtime=4000
+  set hlsearch
+endif
+
+if has("autocmd")
+  filetype plugin indent on
+  augroup vimrcEx
+  au!
+  autocmd BufReadPost *
+    \ if line("'\"") > 1 && line("'\"") <= line("$") |
+    \   exe "normal! g`\"" |
+    \ endif
+
+  autocmd BufEnter * lcd %:p:h
+  augroup END
+
+else
+  set autoindent
+endif
+
+set foldmethod=indent
+set foldlevel=99
+nnoremap <space> za
+
+set tabstop=4
+set shiftwidth=4
+set expandtab
+set smarttab
+set number
+set ignorecase
+set smartcase
+set termguicolors
+colorscheme alduin
+set iminsert=0
+set imsearch=0
+set wrap
+set linebreak
+set nolist
+set textwidth=0
+set wrapmargin=0
+set display+=lastline
+map <silent> j gj
+map <silent> k gk
+set scrolloff=13
+let mapleader = ","
+let g:python_host_prog = '/usr/bin/python'
+let g:python3_host_prog = '/usr/bin/python3'
+
+set listchars=eol:$,tab:>_,space:.,nbsp:%,trail:!
+com! ShowChars :set list!
+com! Q :q
+
+nnoremap <silent> <leader>m :bn<CR>
+nnoremap <silent> <leader>M :bp<CR>
+nnoremap <silent> <leader>d :bd!<CR>
+
+let g:airline_theme = 'minimalist'
+let g:airline#extensions#keymap#enabled = 0
+let g:airline_detect_iminsert=1
+let g:airline_section_x = airline#section#create_right(['tagbar', 'gutentags', 'grepper', 'filetype'])
+
+function! FixAirlineGit()
+    let hunks = airline#parts#get("hunks")
+    unlet hunks.minwidth
+    let branch = airline#parts#get("branch")
+    unlet branch.minwidth
+
+    let g:airline_section_b = airline#section#create(['hunks', 'branch'])
+    AirlineRefresh
+endfunction
+function! FzfSpellSink(word)
+    exe 'normal! "_ciw'.a:word
+endfunction
+function! FzfSpell()
+    let suggestions = spellsuggest(expand("<cword>"))
+    return fzf#run({'source': suggestions, 'sink': function("FzfSpellSink"), 'down': 10 })
+endfunction
+nnoremap z= :call FzfSpell()<CR>
+nnoremap < :lprevious<CR>
+nnoremap > :lnext<CR>
+
+lua << EOF
+do
+  local method = 'textDocument/publishDiagnostics'
+  local default_h = vim.lsp.handlers[method]
+  vim.lsp.handlers[method] = function(err, method, result, client_id, bufnr, config)
+    default_h(err, method, result, client_id, bufnr, config)
+    vim.diagnostic.setloclist{open = false}
+  end
+end
+
+do
+  require('lsp_signature').setup{
+    bind = true,
+    handler_opts = {
+      border = 'single',
+    },
+    hint_prefix = '=> ',
+    transparency = 30,
+    zindex = 40,
+  }
+end
+
+local nvim_lsp = require 'lspconfig'
+local nvim_lsp_util = require 'lspconfig.util'
+local nvim_lsp_confs = require 'lspconfig.configs'
+
+local on_attach = function(client, bufnr)
+  local function buf_set_keymap(...) vim.api.nvim_buf_set_keymap(bufnr, ...) end
+  local opts = { noremap=true, silent=true }
+
+  buf_set_keymap('n', 'gD', '<cmd>lua vim.lsp.buf.declaration()<CR>', opts)
+  buf_set_keymap('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>', opts)
+  buf_set_keymap('n', 'K', '<cmd>lua vim.lsp.buf.hover()<CR>', opts)
+  buf_set_keymap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
+  buf_set_keymap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', opts)
+  buf_set_keymap('n', '<leader>r', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
+  buf_set_keymap('n', '<leader>f', '<cmd>lua vim.lsp.buf.format{ async = true}<CR>', opts)
+end
+
+local servers = {
+  'pyright',
+  'terraformls',
+  'tflint',
+  'tsserver',
+}
+
+for _, lsp in ipairs(servers) do
+  nvim_lsp[lsp].setup {
+    on_attach = on_attach,
+    flags = {
+      debounce_text_changes = 150,
+    }
+  }
+end
+EOF
+
+let s:default_sources = ['nvim-lsp', 'file', 'around']
+call ddc#custom#patch_global('ui', 'pum')
+call ddc#custom#patch_global('sources', s:default_sources)
+call ddc#custom#patch_global('sourceOptions', {
+\   '_': {
+\     'matchers': ['matcher_fuzzy'],
+\     'sorters': ['sorter_fuzzy'],
+\     'converters': ['converter_remove_overlap', 'converter_fuzzy'],
+\   },
+\   'nvim-lsp': {
+\     'mark': 'lsp',
+\     'forceCompletionPattern': '\.\w*|:\w*|->\w*',
+\   },
+\   'around': {'mark': 'A'},
+\   'file': {
+\     'matchers': ['matcher_head'],
+\     'sorters': ['sorter_ascii'],
+\     'mark': 'F',
+\     'isVolatile': v:true,
+\     'forceCompletionPattern': '\S/',
+\   },
+\   'yank': {'mark': 'Y'},
+\ })
+
+call ddc#custom#patch_filetype(['vim'], {
+\   'sources': ['necovim'] + s:default_sources,
+\   'sourceOptions': {'necovim': {'mark': 'Vim'}},
+\ })
+
+inoremap <C-j>   <Cmd>call pum#map#insert_relative(+1)<CR>
+inoremap <C-k>   <Cmd>call pum#map#insert_relative(-1)<CR>
+inoremap <C-y>   <Cmd>call pum#map#confirm()<CR>
+inoremap <C-e>   <Cmd>call pum#map#cancel()<CR>
+
+function! s:check_back_space() abort
+    let col = col('.') - 1
+    return !col || getline('.')[col - 1] =~ '\s'
+endfunction
+
+inoremap <silent><expr> <TAB>
+    \ pum#visible() ? pum#map#insert_relative(+1) :
+    \ <SID>check_back_space() ? '<TAB>' :
+    \ pum#map#insert_relative(+1)
+
+inoremap <silent><expr> <S-TAB>
+    \ pum#visible() ? pum#map#insert_relative(-1) :
+    \ <SID>check_back_space() ? '<TAB>' :
+    \ pum#map#insert_relative(-1)
+
+call ddc#enable()
+call popup_preview#enable()
+
+set cursorline
+set completeopt-=preview
+
+augroup soto-aus
+    au!
+    au FileType html,htmldjango,css,json,jsonc,yaml,xml,scss,svg,elm
+                \ set tabstop=2 softtabstop=2 shiftwidth=2
+    au FileType yaml
+                \ setlocal ts=2 sts=2 sw=2 expandtab
+                \ indentkeys-=0# indentkeys-=<:>
+    au VimEnter * call FixAirlineGit()
+augroup END
